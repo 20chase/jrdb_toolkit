@@ -31,6 +31,7 @@ class JRDB3DBox(_BaseDataset):
             'TRACKER_SUB_FOLDER': 'data',  # Tracker files are in TRACKER_FOLDER/tracker_name/TRACKER_SUB_FOLDER
             'OUTPUT_SUB_FOLDER': '',  # Output files are saved in OUTPUT_FOLDER/tracker_name/OUTPUT_SUB_FOLDER
             'TRACKER_DISPLAY_NAMES': None,  # Names of trackers to display, if None: TRACKERS_TO_EVAL
+            'VALID_EVALUATION_DISTANCE': 25,
         }
         return default_config
 
@@ -51,6 +52,7 @@ class JRDB3DBox(_BaseDataset):
 
         self.tracker_sub_fol = self.config['TRACKER_SUB_FOLDER']
         self.output_sub_fol = self.config['OUTPUT_SUB_FOLDER']
+        self.valid_distance_square = self.config['VALID_EVALUATION_DISTANCE'] * self.config['VALID_EVALUATION_DISTANCE']
 
         self.max_occlusion = 2
         self.max_truncation = 0
@@ -194,7 +196,9 @@ class JRDB3DBox(_BaseDataset):
             if time_key in read_data.keys():
                 time_data = np.asarray(read_data[time_key], dtype=np.float)
                 raw_data['dets'][t] = np.atleast_2d(time_data[:, 6:10])
-                raw_data['dets_3d'][t] = np.atleast_2d(time_data[:, 10:17])
+                raw_data['dets_3d'][t] = np.atleast_2d(
+                    list(filter(lambda x: x[0]*x[0] + x[2]*x[2] < self.valid_distance_square, time_data[:, 10:17]))
+                    )
                 raw_data['ids'][t] = np.atleast_1d(time_data[:, 1]).astype(int)
                 raw_data['classes'][t] = np.atleast_1d(time_data[:, 2]).astype(int)
                 if is_gt:
